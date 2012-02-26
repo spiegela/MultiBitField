@@ -8,12 +8,18 @@ module MultiBitField
     # Copyright:: Copyright (c) 2012 Aaron Spiegel
     # License:: MIT License (http://www.opensource.org/licenses/mit-license.php)
     #
+    # Assign bitfields to a column
+    #
     # +has_bit_field :column, :fields
     #
+    # @example
     #   class User < ActiveRecord::Base
     #     has_bit_field :counter, :daily => 0..4, :weekly => 5..9, :monthly => 10..14
     #   end
     #
+    # @param [ Symbol ] counter Integer attribute to store bitfields
+    # @param [ Hash ]   fields  Specify the bitfield name, and the columns
+    #                           of the bitstring assigned to it
     def has_bit_field column, fields
       set_bitfields! column, fields
       
