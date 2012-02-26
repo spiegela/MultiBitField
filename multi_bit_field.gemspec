@@ -7,13 +7,12 @@ require "multi_bit_field/version"
 Gem::Specification.new do |s|
   s.name        = "multi_bit_field"
   s.version     = MultiBitField::VERSION
-  s.authors     = ["TODO: Your name"]
-  s.email       = ["TODO: Your email"]
-  s.homepage    = "TODO"
-  s.summary     = "TODO: Summary of MultiBitField."
-  s.description = "TODO: Description of MultiBitField."
+  s.authors     = ["Aaron Spiegel"]
+  s.email       = ["spiegela@gmail.com"]
+  s.summary     = "Add support for multiple, and varied sized bitfields to Active Record."
+  s.description = ""
 
-  s.files = Dir["{app,config,db,lib}/**/*"] + ["MIT-LICENSE", "Rakefile", "README.rdoc"]
+  s.files = Dir["{app,config,db,lib}/**/*"] + ["MIT-LICENSE", "Rakefile", "README.markdown"]
   s.test_files = Dir["test/**/*"]
 
   s.add_dependency "rails", "~> 3.2.1"
