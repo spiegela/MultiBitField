@@ -2,33 +2,11 @@ require 'multi_bit_field/core_ext'
 
 module MultiBitField  
   module ClassMethods
-    # MultiBitField create convenience methods for using
+    # MultiBitField creates convenience methods for using
     # multiple filum bit-fields with ActiveRecord.
     # Author:: Aaron Spiegel
     # Copyright:: Copyright (c) 2012 Aaron Spiegel
     # License:: MIT License (http://www.opensource.org/licenses/mit-license.php)
-    #
-    # MultiBitField extends an integer field of the database, and
-    # allows the user to specify multiple columns on that field.
-    # This can be useful when managing multiple boolean options (with single bit columns,)
-    # or multiple bit counters.  This can be useful when sorting based on a combination of
-    # fields.  For instance, you may have daily, weekly and monthly counters, and wan to
-    # sort on each of these with greater weight given to the "daily" counts.  For this
-    # usecase, you could specify the following columns:
-    #
-    #  +----------+---------+---------+---------+----------------------+
-    #  |   daily  |  daily  |  weekly | monthly | all columns together |
-    #  +----------+---------+---------+---------+----------------------+
-    #  |   bits   |  00011  |  00101  | 00001   |    000110010100001   |
-    #  |   values |    3    |    5    |    1    |        3_233         |
-    #  | weighted |   3072  |   160   |    1    |           -          |
-    #  |   maxval |   31    |   31    |   31    |       32_767         |
-    #  +----------+---------+---------+---------+----------------------+
-    #
-    # As you can see, the individual counters can be used individually, or all as one
-    # number.  This can be useful when doing sort operations.  The column order also changes
-    # the relative weight of each.  This can be useful when sorting based on multiple
-    # weighted fields, or comparing related values simply and efficiently.
     #
     # +has_bit_field :column, :fields
     #
@@ -69,6 +47,8 @@ module MultiBitField
   end  
   
   module InstanceMethods
+    private
+    
     # self[column_name].to_s(2)                -- converts integer to binary string
     # self[column_name].to_s(2)[filum]         -- selects range or integer from string
     # self[column_name].to_s(2)[filum].to_i(2) -- converts it back to an integer
@@ -85,7 +65,7 @@ module MultiBitField
       bit_string = self[column].to_i.to_s(2)
       temp_field = sprintf("%0#{length}d", bit_string)
 
-      raise "Attempted value: #{value} is too large for selected filum" \
+      raise ArgumentError, "Attempted value: #{value} is too large for selected filum" \
         if filum.count < value.to_i.to_s(2).length
 
       # replace filum section

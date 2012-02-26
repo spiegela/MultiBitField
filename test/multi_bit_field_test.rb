@@ -66,4 +66,16 @@ describe MultiBitField do
     end
   end
   
+  describe "oversized value for bitfield" do
+    subject do
+      lambda do
+        Person.new :month => 31
+      end
+    end
+    
+    it "raises an ArgumentError" do
+      subject.must_raise ArgumentError
+    end
+  end
+  
 end
