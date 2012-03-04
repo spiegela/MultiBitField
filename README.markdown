@@ -25,12 +25,12 @@ Say you have daily, weekly and monthly counters:
  
 If this model is now sorted in ascending order, it'll sort first by day, then by week and then by month.  You could also compare counters with a paired "limit" field.
 
-The methods only require an integer attribute (any ORM will do.)  Here's how we'd set this up:
+These methods only require an integer attribute (any ORM will do.)  Here's how we'd set this up:
 
 ```ruby
   class User < ActiveRecord::Base
-    has_bit_field :counter, :daily => 0..4, :weekly => 5..9, :monthly => 10..14
-	has_bit_field :limit,   :daily => 0..4, :weekly => 5..9, :monthly => 10..14
+    has_bit_field :counter, :daily_count => 0..4, :weekly_count => 5..9, :monthly_count => 10..14
+	has_bit_field :limit,   :daily_limit => 0..4, :weekly_limit => 5..9, :monthly_limit => 10..14
   end
 ```
 
@@ -39,22 +39,60 @@ this provides the following methods:
 ```ruby
 person = Person.new :daily => 3, :weekly => 5, :monthly => 1
 person.daily 
--> 3
+=> 3
 person.counter
--> 3233
+=> 3233
 
 person = Person.new :counter => 3233
 person.monthly
--> 1
+=> 1
 person.weekly
--> 5
+=> 5
 person.monthly = 4
 person.counter
--> 3236
+=> 3236
+```
 
-\# to view the binary string, you can convert to base-2
+We can inspsect what this bitstring looks like to converting it like so:
+
+```ruby
 person.counter.to_s(2)
 -> 000110010100100
+
+```
+
+We also provide convenient methods for resetting and incrementing fields.  These methods require active-record and active-relation since they use the "update_attributes" and "update_all" methods.
+
+```ruby
+peron.reset(:counter, :daily)
+person.daily
+=> 0
+person.monthly
+=> 4
+
+person.increment(:counter, :daily)
+person.daily
+=> 1
+
+person.reset(:counter, :daily, :monthly)
+person.daily
+=> 0
+person.monthly
+=> 0
+```
+
+The same thing works with bulk assignment:
+
+```ruby
+[person1.daily, person2.daily]
+=> [15, 23]
+
+Person.reset :counter, :daily
+[person1.daily, person2.daily]
+=> [0, 0]
+
+Person.increment :counter, :daily
+=> [1, 1]
 ```
 
 One limitation you should be aware of:
@@ -65,9 +103,8 @@ Since this technique pins the counters/limits to specific bits, you will need to
 
 I intend to add some more methods in the models for the following features:
 
-  * Add class and instance "bitfield reset" methods
-  	- This may make the plugin more dependent on an ORM/database
-  * Possibly replace current String-converstion solution with bit-functions
+  * Possibly replace current String-converstion solution with integer bit-functions
+  * Add support for reset and increment of active-relation objects
   * Add comparison methods between bitfields on the same column, or between multiple columns
   * Investigate if there's a use for right/left bit shifting
 
