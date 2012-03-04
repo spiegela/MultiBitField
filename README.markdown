@@ -95,6 +95,12 @@ Person.increment :counter, :daily
 => [1, 1]
 ```
 
+By the way, these methods all work with your chainable active-relation query methods!
+
+```ruby
+Person.where(:daily => 0).increment_bitfield(:counter, :daily)
+```
+
 One limitation you should be aware of:
 
 Since this technique pins the counters/limits to specific bits, you will need to plan the size of integer you intend to store in each field.  For instance, if you need numbers 0-7, you can store that in 3 bits, if you need 0-31, you'll need 5 bits, etc.
@@ -104,7 +110,6 @@ Since this technique pins the counters/limits to specific bits, you will need to
 I intend to add some more methods in the models for the following features:
 
   * Possibly replace current String-converstion solution with integer bit-functions
-  * Add support for reset and increment of active-relation objects
   * Add comparison methods between bitfields on the same column, or between multiple columns
   * Investigate if there's a use for right/left bit shifting
 
