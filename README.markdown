@@ -115,6 +115,14 @@ By the way, these methods all work with your chainable active-relation query met
 Person.where(:daily => 0).increment_bitfield(:counter, :daily)
 ```
 
+We also support some cool counting features -- be sure to admire the nice clean SQL:
+
+```ruby
+Person.count_by(:counter, :monthly)
+(0.4ms)  SELECT count(id) as daily_count, (counter & 31744)/1024 as daily FROM "people" GROUP BY daily
+=> [{"daily_count" => 2, "daily" => 5}, {"daily_count" => 3, "daily" => 1}]
+```
+
 One limitation you should be aware of:
 
 Since this technique pins the counters/limits to specific bits, you will need to plan the size of integer you intend to store in each field.  For instance, if you need numbers 0-7, you can store that in 3 bits, if you need 0-31, you'll need 5 bits, etc.

@@ -37,6 +37,13 @@ describe MultiBitField do
       subject.increment_mask_for(:birthday, :month, :day).must_equal 33
     end
     
+    it "implements only_mask_for with single field" do
+      subject.only_mask_for(:birthday, :month).must_equal 480
+    end
+    
+    it "implements only_mask_for with multiple fields" do
+      subject.only_mask_for(:birthday, :month, :day).must_equal 511
+    end
   end
   
   describe "instance methods with nil value" do
@@ -186,6 +193,27 @@ describe MultiBitField do
     
     it "keeps other field in all models at previous value" do
       Person.all.map(&:day).must_equal [15, 28]
+    end
+  end
+  
+  describe "counting by bitfields" do
+    before do
+      Person.create :month => 6, :day => 13
+      Person.create :month => 4, :day => 28
+      Person.create :month => 4, :day => 17
+    end
+    
+    after do
+      Person.destroy_all
+    end
+    
+    subject do
+      Person.count_by :birthday, :month
+    end
+    
+    it "counts the resources grouped by a bitfield" do
+      subject.must_include({"month_count" => 2, "month" => 4})
+      subject.must_include({"month_count" => 1, "month" => 6})
     end
   end
 end

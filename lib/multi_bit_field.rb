@@ -105,6 +105,27 @@ module MultiBitField
       end.to_i(2)
     end
     
+    # Returns an "only mask" for a list of fields
+    #
+    # +only_mask_for :fields
+    #
+    # @example
+    #  user.only_mask_for :field
+    #
+    # @param [ Symbol ] column     name of the column these fields are in
+    # @param [ Symbol ] field(s) name of the field(s) for the mask
+    def only_mask_for column_name, *fields
+      fields = bitfields if fields.empty?
+      fields.inject("0" * bitfield_size(column_name)) do |mask, field_name|
+        column = @@bitfields[column_name]
+        raise ArgumentError, "Unknown column for bitfield: #{column_name}" if column.nil?
+        raise ArugmentError, "Unknown field: #{field_name} for column #{column_name}" if column[field_name].nil?
+        range = column[field_name]
+        mask[range] = "1" * range.count
+        mask
+      end.to_i(2)
+    end
+    
     # Sets one or more bitfields to 0 within a column
     #
     # +reset_bitfield :column, :fields
@@ -135,6 +156,25 @@ module MultiBitField
     end
     alias :increment_bitfield :increment_bitfields
 
+    # Counts resources grouped by a bitfield
+    #
+    # +count_by :column, :fields
+    #
+    # @example
+    #   user.count_by :counter, :monthly
+    #
+    # @param [ Symbol ] column     name of the column these fields are in
+    # @param [ Symbol ] field(s)   name of the field(s) to reset
+    def count_by column_name, field
+      inc = increment_mask_for column_name, field
+      only = only_mask_for column_name, field
+      # Create super-special-bitfield-grouping-query w/ AREL
+      sql = arel_table.
+        project("count(#{primary_key}) as #{field}_count, (#{column_name} & #{only})/#{inc} as #{field}").
+        group(field).to_sql
+      connection.send :select, sql, 'AREL' # Execute the query
+    end
+
     private
     
     def bitfield_setup! column, fields
@@ -143,7 +183,7 @@ module MultiBitField
       else
         @@bitfields = { column => fields }
       end
-    end
+    end    
   end  
   
   module InstanceMethods
@@ -205,8 +245,7 @@ module MultiBitField
       
       # replace with integer value
       self[column] = temp_field.to_i(2)
-    end
-    
+    end    
   end
   
   def self.included(receiver)
