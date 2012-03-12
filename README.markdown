@@ -63,6 +63,8 @@ person.counter.to_s(2)
 
 We also provide convenient methods for resetting and incrementing fields.  These methods require active-record and active-relation since they use the "update_attributes" and "update_all" methods.
 
+When only the columnn name is supplied, it will increment or reset all of the fields.
+
 ```ruby
 peron.reset(:counter, :daily)
 person.daily
@@ -70,8 +72,20 @@ person.daily
 person.monthly
 => 4
 
+person.reset(:counter)
+person.daily
+=> 0
+person.monthly
+=> 0
+
 person.increment(:counter, :daily)
 person.daily
+=> 1
+
+person.increment(:counter)
+person.daily
+=> 2
+person.monthly
 => 1
 
 person.reset(:counter, :daily, :monthly)

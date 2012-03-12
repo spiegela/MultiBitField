@@ -17,6 +17,10 @@ describe MultiBitField do
       subject.bitfield_size(:birthday).must_equal 9
     end
     
+    it "implements a bitfields method" do
+      subject.bitfields(:birthday).sort.must_equal [:day, :month]
+    end
+    
     it "implement reset_mask_for with single field" do
       subject.reset_mask_for(:birthday, :month).must_equal 31
     end

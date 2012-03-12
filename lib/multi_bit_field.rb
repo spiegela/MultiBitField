@@ -50,6 +50,19 @@ module MultiBitField
       @@bitfields[column_name].values.sum.count
     end
     
+    # Returns the field names for the bitfield column
+    #
+    # +bitfields
+    #
+    # @example
+    #  user.bitfields :counter
+    #
+    # @param [ Symbol ] column_name column name that stores the bitfield integer
+    #
+    def bitfields column_name
+      @@bitfields[column_name].keys
+    end
+    
     # Returns a "reset mask" for a list of fields
     #
     # +reset_mask_for :fields
@@ -60,6 +73,7 @@ module MultiBitField
     # @param [ Symbol ] column     name of the column these fields are in
     # @param [ Symbol ] field(s) name of the field(s) for the mask
     def reset_mask_for column_name, *fields
+      fields = bitfields if fields.empty?
       fields.inject("1" * bitfield_size(column_name)) do |mask, field_name|
         column = @@bitfields[column_name]
         raise ArgumentError, "Unknown column for bitfield: #{column_name}" if column.nil?
@@ -80,6 +94,7 @@ module MultiBitField
     # @param [ Symbol ] column     name of the column these fields are in
     # @param [ Symbol ] field(s) name of the field(s) for the mask
     def increment_mask_for column_name, *fields
+      fields = bitfields if fields.empty?
       fields.inject("0" * bitfield_size(column_name)) do |mask, field_name|
         column = @@bitfields[column_name]
         raise ArgumentError, "Unknown column for bitfield: #{column_name}" if column.nil?
