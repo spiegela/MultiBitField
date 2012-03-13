@@ -131,7 +131,6 @@ Since this technique pins the counters/limits to specific bits, you will need to
 
 I intend to add some more methods in the models for the following features:
 
-  * Possibly replace current String-converstion solution with integer bit-functions
   * Add comparison methods between bitfields on the same column, or between multiple columns
   * Investigate if there's a use for right/left bit shifting
 
