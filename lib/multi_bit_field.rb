@@ -27,11 +27,11 @@ module MultiBitField
       fields.each do |field_name, filum|
         class_eval <<-EVAL
           def #{field_name}
-            get_bits_for(:#{column}, #{filum})
+            get_bits_for(:#{column}, :#{field_name})
           end
 
           def #{field_name}=(value)
-            set_bits_for(:#{column}, #{filum}, value)
+            set_bits_for(:#{column}, :#{field_name}, value)
           end
         EVAL
       end
@@ -39,15 +39,15 @@ module MultiBitField
     
     # Returns the size of the bitfield in number of bits
     #
-    # +bitfield_size :column
+    # +bitfield_max :column
     #
     # @example
-    #  user.bitfield_size :counter
+    #  user.bitfield_max :counter
     #
     # @param [ Symbol ] column_name  column name that stores the bitfield integer
     #
-    def bitfield_size column_name
-      @@bitfields[column_name].values.sum.count
+    def bitfield_max column_name
+      @@bitfields[column_name].values.sum.max
     end
     
     # Returns the field names for the bitfield column
@@ -63,6 +63,19 @@ module MultiBitField
       @@bitfields[column_name].keys
     end
     
+    # Returns the column by name
+    #
+    # +column_for
+    #
+    # @param [ Symbol ] column_name column name that stores the bitfield integer
+    #
+    def range_for column_name, field_name
+      column = @@bitfields[column_name]
+      raise ArgumentError, "Unknown column for bitfield: #{column_name}" if column.nil?
+      return column[field_name] if column[field_name]
+      raise ArugmentError, "Unknown field: #{field_name} for column #{column_name}"
+    end
+    
     # Returns a "reset mask" for a list of fields
     #
     # +reset_mask_for :fields
@@ -74,14 +87,8 @@ module MultiBitField
     # @param [ Symbol ] field(s) name of the field(s) for the mask
     def reset_mask_for column_name, *fields
       fields = bitfields if fields.empty?
-      fields.inject("1" * bitfield_size(column_name)) do |mask, field_name|
-        column = @@bitfields[column_name]
-        raise ArgumentError, "Unknown column for bitfield: #{column_name}" if column.nil?
-        raise ArugmentError, "Unknown field: #{field_name} for column #{column_name}" if column[field_name].nil?
-        range = column[field_name]
-        mask[range] = "0" * range.count
-        mask
-      end.to_i(2)
+      max = bitfield_max(column_name)
+      (0..max).sum{|i| 2 ** i} - only_mask_for(column_name, *fields)
     end
     
     # Returns an "increment mask" for a list of fields
@@ -95,14 +102,12 @@ module MultiBitField
     # @param [ Symbol ] field(s) name of the field(s) for the mask
     def increment_mask_for column_name, *fields
       fields = bitfields if fields.empty?
-      fields.inject("0" * bitfield_size(column_name)) do |mask, field_name|
-        column = @@bitfields[column_name]
-        raise ArgumentError, "Unknown column for bitfield: #{column_name}" if column.nil?
+      column = @@bitfields[column_name]
+      raise ArgumentError, "Unknown column for bitfield: #{column_name}" if column.nil?
+      fields.sum do |field_name|
         raise ArugmentError, "Unknown field: #{field_name} for column #{column_name}" if column[field_name].nil?
-        range = column[field_name]
-        mask[range.last] = "1"
-        mask
-      end.to_i(2)
+        2 ** (bitfield_max(column_name) - column[field_name].last)
+      end
     end
     
     # Returns an "only mask" for a list of fields
@@ -116,14 +121,20 @@ module MultiBitField
     # @param [ Symbol ] field(s) name of the field(s) for the mask
     def only_mask_for column_name, *fields
       fields = bitfields if fields.empty?
-      fields.inject("0" * bitfield_size(column_name)) do |mask, field_name|
-        column = @@bitfields[column_name]
-        raise ArgumentError, "Unknown column for bitfield: #{column_name}" if column.nil?
-        raise ArugmentError, "Unknown field: #{field_name} for column #{column_name}" if column[field_name].nil?
-        range = column[field_name]
-        mask[range] = "1" * range.count
-        mask
-      end.to_i(2)
+      column = @@bitfields[column_name]
+      max = bitfield_max(column_name)
+      raise ArgumentError, "Unknown column for bitfield: #{column_name}" if column.nil?
+
+      column.sum do |field_name, range|
+        fields.include?(field_name) ? range.invert(max).sum{|i| 2 ** i} : 0
+      end
+      
+      # fields.inject("0" * (bitfield_max(column_name) + 1)) do |mask, field_name|
+      #   raise ArugmentError, "Unknown field: #{field_name} for column #{column_name}" if column[field_name].nil?
+      #   range = column[field_name]
+      #   mask[range] = "1" * range.count
+      #   mask
+      # end.to_i(2)
     end
     
     # Sets one or more bitfields to 0 within a column
@@ -221,30 +232,24 @@ module MultiBitField
     
     private
     
-    # self[column_name].to_s(2)                -- converts integer to binary string
-    # self[column_name].to_s(2)[filum]         -- selects range or integer from string
-    # self[column_name].to_s(2)[filum].to_i(2) -- converts it back to an integer
-    def get_bits_for(column, filum)
-      return nil if self[column].nil?
-      length     = self.class.bitfield_size column
-      bit_string = self[column].to_i.to_s(2)
-      
-      sprintf("%0#{length}d", bit_string)[filum].to_i(2)
+    # :nodoc:
+    def get_bits_for(column_name, field)
+      return nil if self[column_name].nil?
+      only = self.class.only_mask_for column_name, field
+      inc = self.class.increment_mask_for column_name, field
+      (self[column_name] & only)/inc
     end
 
-    def set_bits_for(column, filum, value)
-      length     = self.class.bitfield_size column
-      bit_string = self[column].to_i.to_s(2)
-      temp_field = sprintf("%0#{length}d", bit_string)
-
-      raise ArgumentError, "Attempted value: #{value} is too large for selected filum" \
-        if filum.count < value.to_i.to_s(2).length
-
-      # replace filum section
-      temp_field[filum] = sprintf("%0#{filum.count}d", value.to_i.to_s(2))
+    # :nodoc:
+    def set_bits_for(column_name, field, value)
+      if self.class.range_for(column_name, field).sum{|i| 2 ** i} < value
+        raise ArgumentError, "Value: #{value} too large for bitfield filum"
+      end
       
-      # replace with integer value
-      self[column] = temp_field.to_i(2)
+      self[column_name] ||= 0
+      reset_mask = self.class.reset_mask_for(column_name, field)
+      inc = self.class.increment_mask_for(column_name, field)
+      self[column_name] = (self[column_name] & reset_mask) | (value * inc)
     end    
   end
   

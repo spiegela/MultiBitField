@@ -13,8 +13,8 @@ describe MultiBitField do
     
     let(:bitfields) { {:birthday => 9} }
     
-    it "implements a bitfield_size method" do
-      subject.bitfield_size(:birthday).must_equal 9
+    it "implements a bitfield_max method" do
+      subject.bitfield_max(:birthday).must_equal 8
     end
     
     it "implements a bitfields method" do
